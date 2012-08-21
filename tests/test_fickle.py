@@ -24,5 +24,9 @@ class TestFickle(unittest.TestCase):
         f = fickle.loads(s)
         self.assertEqual(f(10), 20)
 
+    def test_lambda(self):
+        f = fickle.loads(fickle.dumps(lambda x: x + 10))
+        self.assertEqual(f(10), 20)
+
 if __name__ == '__main__':
     unittest.main()
