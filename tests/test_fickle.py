@@ -28,5 +28,12 @@ class TestFickle(unittest.TestCase):
         f = fickle.loads(fickle.dumps(lambda x: x + 10))
         self.assertEqual(f(10), 20)
 
+    def test_closure(self):
+        x = 5
+        def f(y):
+            return x + y
+        f = fickle.loads(fickle.dumps(f))
+        self.assertEqual(f(10), 15)
+
 if __name__ == '__main__':
     unittest.main()
