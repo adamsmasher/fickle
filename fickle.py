@@ -9,6 +9,11 @@ def dumps(f):
     return pickle.dumps((code, closure))
 
 
+def dump(f, f_name):
+    with open(f_name, 'w') as fp:
+        fp.write(dumps(f))
+
+
 def loads(f):
     code, closure = pickle.loads(f)
 
