@@ -36,6 +36,11 @@ def loads(f):
     return types.FunctionType(code, globals, closure=closure)
 
 
+def load(f_name):
+    with open(f_name) as f:
+        return loads(f.read())
+
+
 def _instantiate_closure(closure):
     '''Consumes a list of (varname, value) pairs and produces a tuple of cells
        containing the values.'''
