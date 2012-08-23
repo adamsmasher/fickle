@@ -9,6 +9,10 @@ g = 10
 def module_scope_add_global(x):
     return x + g
 
+import math
+def module_scope_use_imported(x):
+    return math.ceil(x) + 10
+
 class TestFickle(unittest.TestCase):
     def test_module_scope(self):
         f = fickle.loads(fickle.dumps(module_scope_add_10))
@@ -23,6 +27,12 @@ class TestFickle(unittest.TestCase):
         del globals()['g']
         f = fickle.loads(s)
         self.assertEqual(f(10), 20)
+
+    def test_module_scope_import(self):
+        f = fickle.loads(fickle.dumps(module_scope_use_imported))
+        del globals()['math']
+        self.assertEqual(f(9.7), 20)
+        import math
 
     def test_lambda(self):
         f = fickle.loads(fickle.dumps(lambda x: x + 10))
