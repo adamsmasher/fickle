@@ -27,6 +27,8 @@ class TestFickle(unittest.TestCase):
         del globals()['g']
         f = fickle.loads(s)
         self.assertEqual(f(10), 20)
+        # restore global
+        globals()['g'] = 10
 
     def test_module_scope_import(self):
         f = fickle.loads(fickle.dumps(module_scope_use_imported))
