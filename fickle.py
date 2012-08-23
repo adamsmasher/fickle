@@ -6,8 +6,16 @@ def dumps(f):
     code = marshal.dumps(f.func_code)
     closure = ([cell.cell_contents for cell in f.func_closure]
                if f.func_closure else None)
-    return pickle.dumps((code, closure))
+    globals = f.func_globals
+    modules = set(k for k, v in globals.iteritems()
+                  if isinstance(v, types.ModuleType) and _safe_to_reload(k))
+    globals = dict((k, v) for k, v in globals.iteritems()
+                   if not isinstance(v, types.ModuleType))
+    return pickle.dumps((code, globals, closure, modules))
 
+
+def _safe_to_reload(module_name):
+    return module_name not in set(['__builtins__'])
 
 def dump(f, f_name):
     with open(f_name, 'w') as fp:
@@ -15,14 +23,17 @@ def dump(f, f_name):
 
 
 def loads(f):
-    code, closure = pickle.loads(f)
+    code, globals, closure, modules = pickle.loads(f)
 
     code = marshal.loads(code)
 
     if closure:
         closure = _instantiate_closure(closure)
 
-    return types.FunctionType(code, globals(), closure=closure)
+    for module in modules:
+        globals[module] = __import__(module)
+
+    return types.FunctionType(code, globals, closure=closure)
 
 
 def _instantiate_closure(closure):
