@@ -1,0 +1,7 @@
+fickle - a function pickler
+---------------------------
+
+python's built in pickle module can't pickle any non-top-level functions.
+fickle aims to rectify this - with fickle you can pickle local functions,
+lambda, closures, etc.
+
