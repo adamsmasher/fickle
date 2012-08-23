@@ -5,9 +5,27 @@ import types
 _global_scopes = {}
 
 def dumps(f):
+    '''Given a function f, returns a string containing a serialized version of
+       f.'''
     code = marshal.dumps(f.func_code)
-    closure = ([cell.cell_contents for cell in f.func_closure]
-               if f.func_closure else None)
+
+    closure = _get_closure(f)
+
+    globals, global_modules, global_functions = _get_global_data(f)
+
+    return pickle.dumps((
+        code, globals, closure, global_modules, global_functions))
+
+
+def _get_closure(f):
+    '''Returns a list consisting of the closed over values of f, in order, or
+       None if f does not have a closure.'''
+    return ([cell.cell_contents for cell in f.func_closure]
+            if f.func_closure else None)
+
+
+def _get_global_data(f):
+    '''Returns a (globals, global_modules, global_functions) tuple.'''
     global_id = id(f.func_globals)
     if global_id not in _global_scopes:
         # set it initially so recursion halts
@@ -22,10 +40,7 @@ def dumps(f):
         _global_scopes[global_id][0].update(globals)
         _global_scopes[global_id][1].update(global_modules)
         _global_scopes[global_id][2].update(global_functions)
-    globals, global_modules, global_functions = \
-        _global_scopes[id(f.func_globals)]
-    return pickle.dumps((
-        code, globals, closure, global_modules, global_functions))
+    return _global_scopes[global_id]
 
 
 def _get_globals(f):
