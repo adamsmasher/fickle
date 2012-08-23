@@ -2,16 +2,49 @@ import marshal
 import pickle
 import types
 
+_global_scopes = {}
+
 def dumps(f):
     code = marshal.dumps(f.func_code)
     closure = ([cell.cell_contents for cell in f.func_closure]
                if f.func_closure else None)
-    globals = f.func_globals
-    modules = set(k for k, v in globals.iteritems()
-                  if isinstance(v, types.ModuleType) and _safe_to_reload(k))
-    globals = dict((k, v) for k, v in globals.iteritems()
-                   if not isinstance(v, types.ModuleType))
-    return pickle.dumps((code, globals, closure, modules))
+    global_id = id(f.func_globals)
+    if global_id not in _global_scopes:
+        # set it initially so recursion halts
+        _global_scopes[global_id] = ({}, set(), set())
+        
+        globals, global_modules, global_functions = (
+            _get_globals(f),
+            _get_global_modules(f),
+            _get_global_functions(f))
+
+        # inject results into vars that everyone refs
+        _global_scopes[global_id][0].update(globals)
+        _global_scopes[global_id][1].update(global_modules)
+        _global_scopes[global_id][2].update(global_functions)
+    globals, global_modules, global_functions = \
+        _global_scopes[id(f.func_globals)]
+    return pickle.dumps((
+        code, globals, closure, global_modules, global_functions))
+
+
+def _get_globals(f):
+    '''Return a dictionary containing the globals the function expects - 
+       without modules or functions referenced (because these need to be
+       pickled/unpickled specially).'''
+    return dict((k, v) for k, v in f.func_globals.iteritems()
+                if not isinstance(v, types.ModuleType) and
+                   not isinstance(v, types.FunctionType))
+
+
+def _get_global_modules(f):
+    return set(k for k, v in f.func_globals.iteritems()
+               if isinstance(v, types.ModuleType) and _safe_to_reload(k))
+
+
+def _get_global_functions(f):
+    return set((k, dumps(v)) for k, v in f.func_globals.iteritems()
+               if isinstance(v, types.FunctionType) and f != v)
 
 
 def _safe_to_reload(module_name):
@@ -23,15 +56,18 @@ def dump(f, f_name):
 
 
 def loads(f):
-    code, globals, closure, modules = pickle.loads(f)
+    code, globals, closure, global_modules, global_functions = pickle.loads(f)
 
     code = marshal.loads(code)
 
     if closure:
         closure = _instantiate_closure(closure)
 
-    for module in modules:
+    for module in global_modules:
         globals[module] = __import__(module)
+
+    for (function_name, function) in global_functions:
+        globals[function_name] = loads(function)
 
     return types.FunctionType(code, globals, closure=closure)
 
