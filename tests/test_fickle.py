@@ -15,8 +15,11 @@ def module_scope_use_imported(x):
 
 class TestFickle(unittest.TestCase):
     def test_module_scope(self):
-        f = fickle.loads(fickle.dumps(module_scope_add_10))
+        f = fickle.dumps(module_scope_add_10)
+        del globals()['module_scope_add_10']
+        f = fickle.loads(f)
         self.assertEqual(f(10), 20)
+        globals()['module_scope_add_10'] = f
 
     def test_module_scope_read_global(self):
         '''What should we do when we reference a global? It's something we
