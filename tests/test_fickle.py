@@ -21,6 +21,22 @@ class TestFickle(unittest.TestCase):
         self.assertEqual(f(10), 20)
         globals()['module_scope_add_10'] = f
 
+    def test_mutual(self):
+        def f(x):
+            if x <= 0:
+                return True
+            else:
+                return g(x-1)
+        def g(x):
+            if x <= 0:
+                return False
+            else:
+                return f(x-1)
+        fstr = fickle.dumps(f)
+        g = None
+        f = fickle.loads(fstr)
+        self.assertEqual(f(5), False)
+
     def test_module_scope_read_global(self):
         '''What should we do when we reference a global? It's something we
            closed over, so let's try to keep the value.'''
