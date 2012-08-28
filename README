@@ -5,3 +5,11 @@ python's built in pickle module can't pickle any non-top-level functions.
 fickle aims to rectify this - with fickle you can pickle local functions,
 lambda, closures, etc.
 
+
+
+Known Issues
+------------
+
+- mutual recursive functions don't work, and may be impossible to reconstruct
+  in pure python
+- functions sharing mutable closed over data do not work correctly
