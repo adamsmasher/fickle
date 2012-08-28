@@ -31,6 +31,19 @@ class TestFickle(unittest.TestCase):
         g = fickle.loads(gstr)
         self.assertEqual(g(), 5)
 
+    def test_shared_state(self):
+        x = []
+        def f():
+            x.append(1)
+        def g():
+            x.append(2)
+            f()
+            return x
+        gstr = fickle.dumps(g)
+        f = None
+        g = fickle.loads(gstr)
+        self.assertEqual(g(), [2, 1])
+
     def test_mutual(self):
         def f(x):
             if x <= 0:
