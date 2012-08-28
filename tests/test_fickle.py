@@ -21,6 +21,16 @@ class TestFickle(unittest.TestCase):
         self.assertEqual(f(10), 20)
         globals()['module_scope_add_10'] = f
 
+    def test_closed_functions(self):
+        def f():
+            return 5
+        def g():
+            return f()
+        gstr = fickle.dumps(g)
+        f = None
+        g = fickle.loads(gstr)
+        self.assertEqual(g(), 5)
+
     def test_mutual(self):
         def f(x):
             if x <= 0:
