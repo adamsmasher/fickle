@@ -93,8 +93,8 @@ def load(f_name):
 
 
 def _instantiate_closure(closure):
-    '''Consumes a list of (varname, value) pairs and produces a tuple of cells
-       containing the values.'''
+    '''Consumes a list of values and produces a tuple of cells containing the
+       values.'''
     return tuple(_new_cell(value) for value in closure)
 
 
