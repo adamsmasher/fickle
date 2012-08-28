@@ -17,8 +17,8 @@ def dumps(f):
             code, globals, closure, global_modules, global_functions))
 
     def _get_closure(f):
-        '''Returns a list consisting of the closed over values of f, in order, or
-           None if f does not have a closure.'''
+        '''Returns a list consisting of the closed over values of f, in order,
+           or None if f does not have a closure.'''
         return ([cell.cell_contents for cell in f.func_closure]
                 if f.func_closure else None)
 
