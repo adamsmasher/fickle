@@ -17,10 +17,18 @@ def dumps(f):
             code, globals, closure, global_modules, global_functions))
 
     def _get_closure(f):
-        '''Returns a list consisting of the closed over values of f, in order,
-           or None if f does not have a closure.'''
-        return ([cell.cell_contents for cell in f.func_closure]
-                if f.func_closure else None)
+        '''Returns a pair consisting of a list of the closed over values of f
+           on the left and a list of (index, fickled function) pairs on the
+           right, or None if f does not have a closure.'''
+        if f.func_closure is None:
+            return None
+        else:
+            return ([cell.cell_contents for cell in f.func_closure
+                     if not isinstance(cell.cell_contents, types.FunctionType)],
+                    [(i, _dumps(cell.cell_contents))
+                     for i, cell in enumerate(f.func_closure)
+                     if isinstance(cell.cell_contents, types.FunctionType)])
+                
 
     def _get_global_data(f):
         '''Returns a (globals, global_modules, global_functions) tuple.'''
@@ -76,7 +84,7 @@ def loads(f):
     code = marshal.loads(code)
 
     if closure:
-        closure = _instantiate_closure(closure)
+        closure = _instantiate_closure(closure[0], closure[1])
 
     for module in global_modules:
         globals[module] = __import__(module)
@@ -92,9 +100,12 @@ def load(f_name):
         return loads(f.read())
 
 
-def _instantiate_closure(closure):
+def _instantiate_closure(closure, closed_functions):
     '''Consumes a list of values and produces a tuple of cells containing the
        values.'''
+    closure = closure[:]
+    for i, f in closed_functions:
+        closure.insert(i, loads(f))
     return tuple(_new_cell(value) for value in closure)
 
 
