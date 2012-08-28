@@ -2,46 +2,49 @@ import marshal
 import pickle
 import types
 
-_global_scopes = {}
-
 def dumps(f):
     '''Given a function f, returns a string containing a serialized version of
        f.'''
-    code = marshal.dumps(f.func_code)
+    global_scopes = {}
+    def _dumps(f):
+        code = marshal.dumps(f.func_code)
 
-    closure = _get_closure(f)
+        closure = _get_closure(f)
 
-    globals, global_modules, global_functions = _get_global_data(f)
+        globals, global_modules, global_functions = _get_global_data(f)
 
-    return pickle.dumps((
-        code, globals, closure, global_modules, global_functions))
+        return pickle.dumps((
+            code, globals, closure, global_modules, global_functions))
 
+    def _get_closure(f):
+        '''Returns a list consisting of the closed over values of f, in order, or
+           None if f does not have a closure.'''
+        return ([cell.cell_contents for cell in f.func_closure]
+                if f.func_closure else None)
 
-def _get_closure(f):
-    '''Returns a list consisting of the closed over values of f, in order, or
-       None if f does not have a closure.'''
-    return ([cell.cell_contents for cell in f.func_closure]
-            if f.func_closure else None)
+    def _get_global_data(f):
+        '''Returns a (globals, global_modules, global_functions) tuple.'''
+        global_id = id(f.func_globals)
+        if global_id not in global_scopes:
+            # set it initially so recursion halts
+            global_scopes[global_id] = ({}, set(), set())
+            
+            globals, global_modules, global_functions = (
+                _get_globals(f),
+                _get_global_modules(f),
+                _get_global_functions(f))
+    
+            # inject results into vars that everyone refs
+            global_scopes[global_id][0].update(globals)
+            global_scopes[global_id][1].update(global_modules)
+            global_scopes[global_id][2].update(global_functions)
+        return global_scopes[global_id]
 
-
-def _get_global_data(f):
-    '''Returns a (globals, global_modules, global_functions) tuple.'''
-    global_id = id(f.func_globals)
-    if global_id not in _global_scopes:
-        # set it initially so recursion halts
-        _global_scopes[global_id] = ({}, set(), set())
-        
-        globals, global_modules, global_functions = (
-            _get_globals(f),
-            _get_global_modules(f),
-            _get_global_functions(f))
-
-        # inject results into vars that everyone refs
-        _global_scopes[global_id][0].update(globals)
-        _global_scopes[global_id][1].update(global_modules)
-        _global_scopes[global_id][2].update(global_functions)
-    return _global_scopes[global_id]
-
+    def _get_global_functions(f):
+        return set((k, _dumps(v)) for k, v in f.func_globals.iteritems()
+                   if isinstance(v, types.FunctionType) and f != v)
+    
+    return _dumps(f)
 
 def _get_globals(f):
     '''Return a dictionary containing the globals the function expects - 
@@ -57,9 +60,6 @@ def _get_global_modules(f):
                if isinstance(v, types.ModuleType) and _safe_to_reload(k))
 
 
-def _get_global_functions(f):
-    return set((k, dumps(v)) for k, v in f.func_globals.iteritems()
-               if isinstance(v, types.FunctionType) and f != v)
 
 
 def _safe_to_reload(module_name):
